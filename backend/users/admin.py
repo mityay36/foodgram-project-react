@@ -1,9 +1,9 @@
-from django.contrib import admin
 from django import forms
+from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 
-from .models import User, Follow
+from .models import Follow, User
 
 
 class UserChangeForm(forms.ModelForm):
