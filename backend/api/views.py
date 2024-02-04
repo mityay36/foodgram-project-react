@@ -85,7 +85,7 @@ class UserCustomViewSet(UserViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    http_method_names = ['get', 'post', 'patch',]
+    http_method_names = ['get', 'post', 'patch']
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly,)
     pagination_class = CustomPaginator
     filter_backends = (DjangoFilterBackend,)
