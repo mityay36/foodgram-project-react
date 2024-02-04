@@ -22,7 +22,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'drf_yasg',
     'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
@@ -45,7 +44,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:8088',
+    'http://localhost:8000',
 ]
 
 CORS_URLS_REGEX = r'^/api/.*$'
@@ -69,6 +68,15 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'foodgram.wsgi.application'
+
+# База данных для локального запуска.
+'''DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+'''
 
 DATABASES = {
     'default': {
@@ -109,7 +117,7 @@ USE_L10N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'collected_static'
 
 MEDIA_URL = '/media/'

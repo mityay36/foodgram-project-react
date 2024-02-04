@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, validate_slug
 from django.db import models
@@ -43,7 +45,7 @@ class Ingredient(models.Model):
         max_length=200,
         blank=False,
     )
-    measurement = models.CharField(
+    measurement_unit = models.CharField(
         max_length=200,
         blank=False,
         verbose_name='Единицы измерения',
@@ -56,6 +58,18 @@ class Ingredient(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class RecipeQuerySet(models.QuerySet):
+
+    def add_user_annotations(self, user_id: Optional[int]):
+        return self.annotate(
+            is_favorited=models.Exists(
+                Favorite.objects.filter(
+                    user_id=user_id, recipe__pk=models.OuterRef('pk')
+                )
+            ),
+        )
 
 
 class Recipe(models.Model):
@@ -82,7 +96,8 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient,
         blank=False,
-        related_name='recipes',
+        through='RecipeIngredient',
+        through_fields=('recipe', 'ingredient'),
         verbose_name='Ингредиенты',
         help_text='Выберите ингредиенты',
     )
@@ -113,6 +128,8 @@ class Recipe(models.Model):
         'Дата публикации',
         auto_now_add=True,
     )
+
+    objects = RecipeQuerySet.as_manager()
 
     class Meta:
         ordering = ('-pub_date',)
@@ -177,7 +194,7 @@ class ShoppingList(models.Model):
         return f'Корзина пользователя {self.user}'
 
 
-class Follows(models.Model):
+class Favorite(models.Model):
 
     user = models.ForeignKey(
         User,

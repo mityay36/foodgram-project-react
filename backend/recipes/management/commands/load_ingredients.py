@@ -22,7 +22,7 @@ class Command(BaseCommand):
             for row in reader:
                 try:
                     obj, created = Ingredient.objects.get_or_create(
-                        name=row[0], measurement=row[1],
+                        name=row[0], measurement_unit=row[1],
                     )
                     if not created:
                         print('Ошибка заполнения базы данных ингредиентами')
