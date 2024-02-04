@@ -1,25 +1,23 @@
-from rest_framework import viewsets
-from rest_framework import pagination
-from djoser.views import UserViewSet
-from rest_framework import status, exceptions
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_object_or_404
 from django.db.models import Sum
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from djoser.views import UserViewSet
+from rest_framework import exceptions, pagination, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingList, Tag)
+from users.models import Follow, User
 
-from recipes.models import Tag, Recipe, Ingredient, Favorite, ShoppingList, RecipeIngredient
-from users.models import User, Follow
 from .filters import IngredientFilter, RecipeFilter
 from .permissions import IsOwnerOrReadOnly
-from .serializers import (
-    RecipeCreateUpdateSerializer, RecipeListSerializer, TagSerializer,
-    IngredientSerializer, CustomUserSerializer,
-    FollowSerializer, RecipeShortSerializer
-)
+from .serializers import (CustomUserSerializer, FollowSerializer,
+                          IngredientSerializer, RecipeCreateUpdateSerializer,
+                          RecipeListSerializer, RecipeShortSerializer,
+                          TagSerializer)
 
 
 class CustomPaginator(pagination.PageNumberPagination):
@@ -37,7 +35,9 @@ class UserCustomViewSet(UserViewSet):
         permission_classes=(IsAuthenticated,)
     )
     def subscriptions(self, request):
-        following_users = User.objects.filter(following__user=self.request.user)
+        following_users = User.objects.filter(
+            following__user=self.request.user
+        )
         paginated_queryset = self.paginate_queryset(following_users)
         serializer = FollowSerializer(
             paginated_queryset,

@@ -1,13 +1,13 @@
 import re
-from rest_framework import serializers
-from djoser.serializers import UserSerializer, UserCreateSerializer
-from drf_base64.fields import Base64ImageField
-from django.shortcuts import get_object_or_404
 
-from recipes.models import (
-    Tag, Recipe, Ingredient, RecipeIngredient, Favorite, ShoppingList
-)
-from users.models import User, Follow
+from django.shortcuts import get_object_or_404
+from djoser.serializers import UserCreateSerializer, UserSerializer
+from drf_base64.fields import Base64ImageField
+from rest_framework import serializers
+
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingList, Tag)
+from users.models import Follow, User
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -116,8 +116,9 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
     def validate_ingredients(self, value):
         if len(value) < 1:
-            raise serializers.ValidationError('Требуется не менее одного ингредиента.')
-        request = self.context.get('request')
+            raise serializers.ValidationError(
+                'Требуется не менее одного ингредиента.'
+            )
 
         existing_ingredients = []
         for ingredient in value:
@@ -271,11 +272,9 @@ class FollowSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, instance):
         request = self.context.get('request')
-        return (
-                Follow.objects.filter(
-                    user=request.user, author=instance
-                ).exists() and request.user.is_authenticated
-        )
+        return (Follow.objects.filter(
+            user=request.user, author=instance
+        ).exists() and request.user.is_authenticated)
 
     def validate(self, data):
         request = self.context.get('request')
