@@ -1,34 +1,26 @@
-from django.contrib.auth import get_user_model
-from django_filters import rest_framework
+from django_filters.rest_framework import FilterSet, filters
 
 from recipes.models import Ingredient, Recipe, Tag
 
-User = get_user_model()
 
-
-class IngredientFilter(rest_framework.FilterSet):
-    name = rest_framework.CharFilter(lookup_expr='istartswith')
+class IngredientFilter(FilterSet):
+    name = filters.CharFilter(lookup_expr='istartswith')
 
     class Meta:
         model = Ingredient
-        fields = ('name',)
+        fields = ['name']
 
 
-class RecipeFilter(rest_framework.FilterSet):
-    is_favorited = rest_framework.BooleanFilter(
+class RecipeFilter(FilterSet):
+    is_favorited = filters.BooleanFilter(
         method="is_favorited_method",
         label='Избранные рецепты'
     )
-    is_in_shopping_cart = rest_framework.BooleanFilter(
+    is_in_shopping_cart = filters.BooleanFilter(
         method="in_shopping_cart_method",
         label='Рецепты в корзине'
     )
-    author = rest_framework.ModelChoiceFilter(
-        field_name='author',
-        label='Автор',
-        queryset=User.objects.all()
-    )
-    tags = rest_framework.ModelMultipleChoiceFilter(
+    tags = filters.ModelMultipleChoiceFilter(
         field_name='tags__slug',
         to_field_name='slug',
         queryset=Tag.objects.all(),
@@ -46,7 +38,7 @@ class RecipeFilter(rest_framework.FilterSet):
 
     def is_favorited_method(self, queryset, name, value):
         if value:
-            return queryset.filter(favorite__user=self.request.user)
+            return queryset.filter(favorites__user=self.request.user)
         return queryset.exclude(
             favorites__user=self.request.user
         )

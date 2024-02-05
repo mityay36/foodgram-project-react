@@ -1,10 +1,9 @@
 from typing import Optional
 
-from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, validate_slug
 from django.db import models
 
-User = get_user_model()
+from users.models import User
 
 
 class Tag(models.Model):
@@ -175,7 +174,6 @@ class ShoppingList(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        null=True,
         related_name='shopping_list',
         verbose_name='Рецепт к покупке',
     )
