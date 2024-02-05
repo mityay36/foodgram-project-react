@@ -12,7 +12,6 @@ from rest_framework.response import Response
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingList, Tag)
 from users.models import Follow, User
-
 from .filters import IngredientFilter, RecipeFilter
 from .serializers import (CustomUserSerializer, FollowSerializer,
                           IngredientSerializer, RecipeCreateUpdateSerializer,
@@ -57,27 +56,18 @@ class UserCustomViewSet(UserViewSet):
     def subscribe(self, request, id):
         author = get_object_or_404(User, id=id)
         if request.method == 'POST':
-            is_subscribed = Follow.objects.filter(
-                user=request.user, author=author
+            Follow.objects.create(
+                user=request.user,
+                author=author
             )
-            if is_subscribed.exists():
-                return Response(
-                    {'message': 'Вы уже подписались на этого автора.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            else:
-                Follow.objects.create(
-                    user=request.user,
-                    author=author
-                )
-                serializer = FollowSerializer(
-                    author,
-                    context={'request': request}
-                )
-                return Response(
-                    serializer.data,
-                    status=status.HTTP_201_CREATED
-                )
+            serializer = FollowSerializer(
+                author,
+                context={'request': request}
+            )
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
         subscription = Follow.objects.filter(user=request.user, author=author)
         if subscription.exists():
             subscription.delete()
@@ -85,11 +75,10 @@ class UserCustomViewSet(UserViewSet):
                 {'message': 'Вы отписались от автора.'},
                 status=status.HTTP_204_NO_CONTENT
             )
-        else:
-            return Response(
-                {'message': 'Вы не были подписаны на автора'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return Response(
+            {'message': 'Вы не были подписаны на автора'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -136,8 +125,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def favorite(self, request, pk):
         if request.method == 'POST':
             return self.add_recipe(Favorite, request.user, pk)
-        else:
-            return self.delete_recipe(Favorite, request.user, pk)
+        return self.delete_recipe(Favorite, request.user, pk)
 
     @action(
         detail=True,
@@ -147,8 +135,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shopping_cart(self, request, pk):
         if request.method == 'POST':
             return self.add_recipe(ShoppingList, request.user, pk)
-        else:
-            return self.delete_recipe(ShoppingList, request.user, pk)
+        return self.delete_recipe(ShoppingList, request.user, pk)
 
     @action(
         detail=False,
@@ -156,23 +143,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
-        shopping_cart = ShoppingList.objects.filter(user=self.request.user)
-        recipes = [item.recipe.id for item in shopping_cart]
-        buy = (
-            RecipeIngredient.objects.filter(recipe__in=recipes)
-            .values("ingredient")
-            .annotate(amount=Sum("amount"))
-        )
-
+        ingredients = RecipeIngredient.objects.filter(
+            recipe__shopping_list__user=self.request.user).values(
+            'ingredient__name', 'ingredient__measurement_unit').annotate(
+            amount_of_item=Sum('amount'))
         purchased = [
             "Список покупок:",
         ]
-        for item in buy:
-            ingredient = Ingredient.objects.get(pk=item["ingredient"])
-            amount = item["amount"]
+        for item in ingredients:
             purchased.append(
-                f"{ingredient.name}: {amount}, "
-                f"{ingredient.measurement_unit}"
+                f"{item['ingredient__name']}: {item['amount_of_item']}, "
+                f"{item['ingredient__measurement_unit']}"
             )
         purchased_file = "\n".join(purchased)
 
