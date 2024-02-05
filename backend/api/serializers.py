@@ -238,11 +238,6 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         return value
 
 
-class SetPasswordSerializer(serializers.Serializer):
-    current_password = serializers.CharField(required=True, write_only=True)
-    new_password = serializers.CharField(required=True, write_only=True)
-
-
 class FollowSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField(read_only=True)
     recipes_count = serializers.SerializerMethodField(read_only=True)
