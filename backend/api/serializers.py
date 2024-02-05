@@ -73,7 +73,7 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 class RecipeListSerializer(serializers.ModelSerializer):
     ingredients = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
-    in_shopping_cart = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
     author = CustomUserSerializer()
     tags = TagSerializer(many=True)
     image = Base64ImageField(required=True)
@@ -92,10 +92,8 @@ class RecipeListSerializer(serializers.ModelSerializer):
             user=request.user, recipe=instance
         ).exists())
 
-    def get_in_shopping_cart(self, instance):
+    def get_is_in_shopping_cart(self, instance):
         request = self.context.get('request')
-        if not request:
-            return False
         return (request.user.is_authenticated and ShoppingList.objects.filter(
             user=request.user, recipe=instance
         ).exists())
@@ -111,7 +109,7 @@ class RecipeListSerializer(serializers.ModelSerializer):
             'ingredients',
             'tags',
             'cooking_time',
-            'in_shopping_cart',
+            'is_in_shopping_cart',
             'is_favorited',
         )
 
@@ -288,39 +286,5 @@ class FollowSerializer(serializers.ModelSerializer):
         if request.user == get_object_or_404(Follow, pk=self.context['id']):
             raise serializers.ValidationError(
                 'Подписаться на себя невозможно.'
-            )
-        return data
-
-
-class FavoriteSerializer(serializers.ModelSerializer):
-    recipe = serializers.PrimaryKeyRelatedField(
-        queryset=Recipe.objects.all()
-    )
-    user = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all()
-    )
-
-    class Meta:
-        model = Favorite
-        fields = ('user', 'recipe')
-
-    def validate(self, data):
-        if Follow.objects.filter(
-                user=self.context['request'].user, recipe_id=data['id']
-        ).exists():
-            raise serializers.ValidationError(
-                'Этот рецепт уже есть в избранном.'
-            )
-
-
-class ShoppingCartSerializer(serializers.ModelSerializer):
-    def validate(self, data):
-        request = self.context.get('request')
-        if ShoppingList.objects.filter(
-                user=request.user,
-                recipe=data['id']
-        ).exists():
-            raise serializers.ValidationError(
-                'Этот рецепт уже есть в списке покупок'
             )
         return data
