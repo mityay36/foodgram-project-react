@@ -13,9 +13,10 @@ from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingList, Tag)
 from users.models import Follow, User
 from .filters import IngredientFilter, RecipeFilter
-from .serializers import (CustomUserSerializer, FollowSerializer,
+from .serializers import (CustomUserSerializer, FavoriteCreateSerializer,
+                          FollowCreateSerializer, FollowSerializer,
                           IngredientSerializer, RecipeCreateUpdateSerializer,
-                          RecipeListSerializer, RecipeShortSerializer,
+                          RecipeListSerializer, ShoppingListCreateSerializer,
                           TagSerializer)
 
 
@@ -56,18 +57,18 @@ class UserCustomViewSet(UserViewSet):
     def subscribe(self, request, id):
         author = get_object_or_404(User, id=id)
         if request.method == 'POST':
-            Follow.objects.create(
-                user=request.user,
-                author=author
-            )
-            serializer = FollowSerializer(
-                author,
+            serializer = FollowCreateSerializer(
+                data={
+                    'user': request.user.id,
+                    'author': id
+                },
                 context={'request': request}
             )
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
+            if serializer.is_valid(raise_exception=True):
+                serializer.save(author=author, user=self.request.user)
+                return Response(
+                    serializer.data, status=status.HTTP_201_CREATED
+                )
         subscription = Follow.objects.filter(user=request.user, author=author)
         if subscription.exists():
             subscription.delete()
@@ -99,23 +100,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeCreateUpdateSerializer
         return RecipeListSerializer
 
-    def add_recipe(self, model, user, pk):
-        recipe = get_object_or_404(Recipe, id=pk)
-        recipe_in_model = model.objects.filter(user=user, recipe=recipe)
-        if recipe_in_model.exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        else:
-            model.objects.create(user=user, recipe=recipe)
-            serializer = RecipeShortSerializer(recipe)
+    def add_recipe(self, pk, request, custom_serializer):
+        serializer = custom_serializer(
+            data={'recipe': pk},
+            context={'request': request}
+        )
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(user=self.request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def delete_recipe(self, model, user, pk):
-        recipe = get_object_or_404(Recipe, id=pk)
-        recipe_in_model = model.objects.filter(user=user, recipe=recipe)
-        if recipe_in_model.exists():
-            recipe_in_model.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+    def delete_recipe(self, pk, request, custom_serializer, model):
+        serializer = custom_serializer(data={'recipe': pk},
+                                       context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        model_obj = model.objects.get(
+            user=request.user,
+            recipe=serializer.validated_data['recipe'])
+        model_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
@@ -124,8 +126,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk):
         if request.method == 'POST':
-            return self.add_recipe(Favorite, request.user, pk)
-        return self.delete_recipe(Favorite, request.user, pk)
+            return self.add_recipe(pk, request, FavoriteCreateSerializer)
+        return self.delete_recipe(
+            pk, request, FavoriteCreateSerializer, Favorite
+        )
 
     @action(
         detail=True,
@@ -134,8 +138,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk):
         if request.method == 'POST':
-            return self.add_recipe(ShoppingList, request.user, pk)
-        return self.delete_recipe(ShoppingList, request.user, pk)
+            return self.add_recipe(pk, request, ShoppingListCreateSerializer)
+        return self.delete_recipe(
+            pk, request, ShoppingListCreateSerializer, ShoppingList
+        )
 
     @action(
         detail=False,

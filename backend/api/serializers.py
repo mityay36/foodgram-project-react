@@ -149,13 +149,15 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def recipe_ingredient_create(self, ingredients_data, recipe):
-        for ingredient_data in ingredients_data:
-            ingredient = Ingredient.objects.get(id=ingredient_data.get('id'))
-            amount = ingredient_data.get('amount')
-            RecipeIngredient.objects.create(
-                recipe=recipe,
-                ingredient=ingredient,
-                amount=amount)
+        RecipeIngredient.objects.bulk_create(
+            [
+                RecipeIngredient(
+                    ingredient_id=ingredient['id'],
+                    amount=ingredient['amount'],
+                    recipe=recipe
+                ) for ingredient in ingredients_data
+            ]
+        )
 
     def create(self, validated_data):
         tags = validated_data.pop('tags')
@@ -251,16 +253,96 @@ class FollowSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         return subscribed_check(request, instance)
 
+
+class FollowCreateSerializer(serializers.ModelSerializer):
+    user = serializers.SlugRelatedField(
+        slug_field='id',
+        queryset=User.objects.all()
+    )
+    author = serializers.SlugRelatedField(
+        slug_field='id', queryset=User.objects.all()
+    )
+
+    class Meta:
+        model = Follow
+        fields = ('user', 'author')
+
     def validate(self, data):
-        request = self.context.get('request')
+        user = data['user']
+        author = data['author']
+        if user == author:
+            raise serializers.ValidationError(
+                'Подписаться на себя невозможно.'
+            )
         if Follow.objects.filter(
-                user=request.user, author=data['id']
+                user=user, author=author
         ).exists():
             raise serializers.ValidationError(
                 'Повторная подписка на автора невозможна.'
             )
-        if request.user.id == data['id']:
-            raise serializers.ValidationError(
-                'Подписаться на себя невозможно.'
-            )
         return data
+
+    def create(self, validated_data):
+        return Follow.objects.create(**validated_data)
+
+
+class FavoriteCreateSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all())
+
+    class Meta:
+        model = Favorite
+        fields = ('user', 'recipe')
+
+    def validate(self, data):
+        user = self.context['request'].user
+        recipe = data['recipe']
+        if self.context['request'].method == 'POST':
+            if Favorite.objects.filter(
+                    user=user, recipe=recipe
+            ).exists():
+                raise serializers.ValidationError(
+                    'Повторное добавление избранное невозможно.'
+                )
+        elif self.context['request'].method == 'DELETE':
+            if not Favorite.objects.filter(
+                    user=user, recipe=recipe
+            ).exists():
+                raise serializers.ValidationError(
+                    'Рецепт не найден в избранных.'
+                )
+        return data
+
+    def create(self, validated_data):
+        return Favorite.objects.create(**validated_data)
+
+
+class ShoppingListCreateSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all())
+
+    class Meta:
+        model = ShoppingList
+        fields = ('user', 'recipe')
+
+    def validate(self, data):
+        user = self.context['request'].user
+        recipe = data['recipe']
+        if self.context['request'].method == 'POST':
+            if ShoppingList.objects.filter(
+                    user=user, recipe=recipe
+            ).exists():
+                raise serializers.ValidationError(
+                    'Повторное добавление в список покупок невозможно.'
+                )
+        elif self.context['request'].method == 'DELETE':
+            if not ShoppingList.objects.filter(
+                    user=user, recipe=recipe
+            ).exists():
+                raise serializers.ValidationError(
+                    'Рецепт не найден в списке покупок.'
+                )
+        return data
+
+    def create(self, validated_data):
+        return ShoppingList.objects.create(**validated_data)
