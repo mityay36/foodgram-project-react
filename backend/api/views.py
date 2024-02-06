@@ -110,8 +110,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_recipe(self, pk, request, custom_serializer, model):
-        serializer = custom_serializer(data={'recipe': pk},
-                                       context={'request': request})
+        serializer = custom_serializer(
+            data={'recipe': pk},
+            context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
         model_obj = model.objects.get(
             user=request.user,

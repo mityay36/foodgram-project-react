@@ -8,7 +8,7 @@ from rest_framework import serializers
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingList, Tag)
 from users.models import Follow, User
-from .utils import subscribed_check
+from .utils import subscribed_check, validate_create_serializer
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -296,21 +296,8 @@ class FavoriteCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         user = self.context['request'].user
-        recipe = data['recipe']
-        if self.context['request'].method == 'POST':
-            if Favorite.objects.filter(
-                    user=user, recipe=recipe
-            ).exists():
-                raise serializers.ValidationError(
-                    'Повторное добавление избранное невозможно.'
-                )
-        elif self.context['request'].method == 'DELETE':
-            if not Favorite.objects.filter(
-                    user=user, recipe=recipe
-            ).exists():
-                raise serializers.ValidationError(
-                    'Рецепт не найден в избранных.'
-                )
+        context = self.context
+        validate_create_serializer(user, data, Favorite, context)
         return data
 
     def create(self, validated_data):
@@ -327,21 +314,8 @@ class ShoppingListCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         user = self.context['request'].user
-        recipe = data['recipe']
-        if self.context['request'].method == 'POST':
-            if ShoppingList.objects.filter(
-                    user=user, recipe=recipe
-            ).exists():
-                raise serializers.ValidationError(
-                    'Повторное добавление в список покупок невозможно.'
-                )
-        elif self.context['request'].method == 'DELETE':
-            if not ShoppingList.objects.filter(
-                    user=user, recipe=recipe
-            ).exists():
-                raise serializers.ValidationError(
-                    'Рецепт не найден в списке покупок.'
-                )
+        context = self.context
+        validate_create_serializer(user, data, ShoppingList, context)
         return data
 
     def create(self, validated_data):
