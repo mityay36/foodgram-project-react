@@ -64,11 +64,11 @@ class UserCustomViewSet(UserViewSet):
                 },
                 context={'request': request}
             )
-            if serializer.is_valid(raise_exception=True):
-                serializer.save(author=author, user=self.request.user)
-                return Response(
-                    serializer.data, status=status.HTTP_201_CREATED
-                )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(author=author, user=self.request.user)
+            return Response(
+                serializer.data, status=status.HTTP_201_CREATED
+            )
         subscription = Follow.objects.filter(user=request.user, author=author)
         if subscription.exists():
             subscription.delete()
@@ -105,9 +105,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             data={'recipe': pk},
             context={'request': request}
         )
-        if serializer.is_valid(raise_exception=True):
-            serializer.save(user=self.request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=self.request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_recipe(self, pk, request, custom_serializer, model):
         serializer = custom_serializer(
