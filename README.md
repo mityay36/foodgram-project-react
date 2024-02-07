@@ -91,7 +91,7 @@ Reload nginx
   	sudo service nginx reload
   
 ### Сайт доступен по ссылке: 
-### mityay36foodgram.hopto.org(https://mityay36foodgram.hopto.org)
+### [mityay36foodgram.hopto.org](https://mityay36foodgram.hopto.org)
 
 ## Author
 [Dmitry Pokrovsky](https://github.com/mityay36) & Yandex.Practicum
