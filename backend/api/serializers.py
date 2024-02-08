@@ -229,7 +229,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
-    recipes = RecipeShortSerializer(many=True)
+    recipes = serializers.SerializerMethodField(read_only=True)
     recipes_count = serializers.SerializerMethodField(read_only=True)
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
@@ -245,6 +245,17 @@ class FollowSerializer(serializers.ModelSerializer):
             'recipes',
             'recipes_count'
         )
+
+    def get_recipes(self, instance):
+        request = self.context.get('request')
+        recipes_limit = request.GET.get('recipes_limit')
+        queryset = Recipe.objects.filter(
+            author__id=instance.id).order_by('-pub_date')
+        if recipes_limit:
+            return RecipeShortSerializer(
+                queryset[:int(recipes_limit)], many=True
+            ).data
+        return RecipeShortSerializer(queryset, many=True).data
 
     def get_recipes_count(self, instance):
         return Recipe.objects.filter(author__id=instance.id).count()
